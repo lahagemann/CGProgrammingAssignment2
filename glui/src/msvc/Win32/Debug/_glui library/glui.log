@@ -1,0 +1,11 @@
+﻿Build started 30/05/2017 18:59:22.
+     1>Project "D:\Downloads\glui-2.35\glui-2.35\src\msvc\glui.vcxproj" on node 2 (Build target(s)).
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V120\Microsoft.CppBuild.targets(1361,5): warning MSB8012: TargetPath(D:\Downloads\glui-2.35\glui-2.35\src\msvc\Win32\Debug\_glui library\_glui library.lib) does not match the Library's OutputFile property value (D:\Downloads\glui-2.35\glui-2.35\src\msvc\lib\glui32.lib). This may cause your project to build incorrectly. To correct this, please make sure that $(OutDir), $(TargetName) and $(TargetExt) property values match the value specified in %(Lib.OutputFile).
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V120\Microsoft.CppBuild.targets(1363,5): warning MSB8012: TargetName(_glui library) does not match the Library's OutputFile property value (glui32). This may cause your project to build incorrectly. To correct this, please make sure that $(OutDir), $(TargetName) and $(TargetExt) property values match the value specified in %(Lib.OutputFile).
+     1>Lib:
+         glui.vcxproj -> D:\Downloads\glui-2.35\glui-2.35\src\msvc\Win32\Debug\_glui library\_glui library.lib
+     1>Done Building Project "D:\Downloads\glui-2.35\glui-2.35\src\msvc\glui.vcxproj" (Build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:00.09

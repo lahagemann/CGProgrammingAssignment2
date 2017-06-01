@@ -1,8 +1,7 @@
-#include <AntTweakBar.h>
-
-#include <Windows.h>
+﻿#include <Windows.h>
 #include <glut.h>
 #include <glu.h>
+#include <glui.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -10,17 +9,12 @@
 
 #include "Model.h"
 #include "Camera.h"
+#include "matrix4x4f.h"
 
-// STRUCTURES
-typedef struct Matrix {
-	float m[16];
-};
-
-typedef struct Vec {
-	float v[4];
-};
+#define PI 3.141592654
 
 // TWEAKABLE PARAMETERS
+
 // Camera Position
 float g_CamPosition[] = { 0.0f, 0.0f, 5.0f };
 
@@ -35,8 +29,8 @@ float g_ZFar = 2000.0f;
 float g_ZNear = 1.0f;
 
 // Field of View
-float g_FOVX = 128.0f;
-float g_FOVY = 72.0f;
+float g_FOVX = 60.0f;
+float g_FOVY = 60.0f;
 
 // Material Color
 float g_MatAmbient[] = { 0.5f, 0.0f, 0.0f, 1.0f };
@@ -51,20 +45,17 @@ int g_LookAtObject = 1;
 int g_PerformBFCulling = 0;
 
 // Options
-// This example displays one of the following shapes
-typedef enum { SHADING_POINTS = 1, SHADING_WIRE, SHADING_SOLID } Shading;
-#define NUM_SHADING 3
-Shading g_CurrentShading = SHADING_SOLID;
-
-char filename[256] = "cow_up.in";
+int g_DrawingMode = 0;
+char filename[256] = "cube.in";
 
 // other variables
-
 Model m;
 Camera g_cam;
+int mainWindow, close2GLWindow;
+long int frameCounter, frameCounter2, fps, fps2;
 
-int width = 1280;
-int height = 720;
+int width = 600;
+int height = 600;
 /*
 	You can easily set up the viewing frustum using vertical field of view and screen's aspect ratio.
 		aspect ratio = width/height
@@ -74,42 +65,16 @@ int height = 720;
 		left = bottom = - top * aspect ratio
 */
 //near far
-float n = 1.0f, f = 2000.0f; 
+float n = g_ZNear, f = g_ZFar; 
 
-// FRUSTUM DEFINITION: right left top bottom
-float t = tan(g_FOVY / 2.0f) * n;
-float b = -t;
-float r = t * (width / height);
-float l = -r;
+
 
 // WINDOW SIZE DEFINITION
-float rv = 720.0f, lv = 0.0f, tv = 0.0f, bv = 720.0f; //window right left top bottom
+float rv = 600.0f, lv = 0.0f, tv = 0.0f, bv = 600.0f; //window right left top bottom
 
-// MATRIXES
-/*
-	mat setup:
-		m[0]	m[4]	m[8]	m[12]	
-		m[1]	m[5]	m[9]	m[13]
-		m[2]	m[6]	m[10]	m[14]
-		m[3]	m[7]	m[11]	m[15]
-*/
-float ModelViewMat[16];
-float ProjectionMat[16] = 
-{	
-	2*n/(r-l),		0.0f,			0.0f,				0.0f,
-	0.0f,			2*n/(t-b),		0.0f,				0.0f,	
-	(r+l)/(r-l),	(t+b)/(t-b),	-((f+n)/(f-n)),		-1.0f,
-	0.0f,			0.0f,			-((2*f*n)/(f-n)),	0.0f 
-};
-
-float ViewPortMat[16] = 
-{
-	(rv-lv)/2,		0.0f,		0.0f,	0.0f,
-	0.0f,			(tv-bv)/2,	0.0f,	0.0f,
-	0.0f,			0.0f,		1.0f,	0.0f,
-	(rv + lv)/2,	(tv+bv)/2,	0.0f,	1.0f
-};
-
+matrix4x4f modelview;
+matrix4x4f projection;
+matrix4x4f viewport;
 
 // OBJECT CENTER IN WCS
 float obj_center[] = { 0.0f, 0.0f, 0.0f };
@@ -117,11 +82,58 @@ float obj_center[] = { 0.0f, 0.0f, 0.0f };
 float g_Zoom = 1.0f;
 
 
+void update_modelview_matrix()
+{
+	matrix4x4f *m = &modelview;
+	m->m[0] = g_cam.m[0];	m->m[4] = g_cam.m[4];	m->m[8] = g_cam.m[8];	m->m[12] = g_cam.m[12];
+	m->m[1] = g_cam.m[1];	m->m[5] = g_cam.m[5];	m->m[9] = g_cam.m[9];	m->m[13] = g_cam.m[13];
+	m->m[2] = g_cam.m[2];	m->m[6] = g_cam.m[6];	m->m[10] = g_cam.m[10];	m->m[14] = g_cam.m[14];
+	m->m[3] = g_cam.m[3]; 	m->m[7] = g_cam.m[7]; 	m->m[11] = g_cam.m[11];	m->m[15] = g_cam.m[15];
+}
+
+void update_projection_matrix() 
+{
+	// FRUSTUM DEFINITION: right left top bottom
+	
+	float t = tan(g_FOVY * PI / 360.0f) * n;
+	float b = -t;
+	float r = tan(g_FOVX * PI/ 360.0f) * n;
+	float l = -r;
+
+	matrix4x4f *m = &projection;
+	m->m[0] = 2 * n / (r - l);	m->m[4] = 0;				m->m[8] = (r + l) / (r - l);	m->m[12] = 0;
+	m->m[1] = 0;				m->m[5] = 2 * n / (t - b);	m->m[9] = (t + b) / (t - b);	m->m[13] = 0;
+	m->m[2] = 0;				m->m[6] = 0;				m->m[10] = -(f + n) / (f - n);	m->m[14] = -(2 * f*n) / (f - n);
+	m->m[3] = 0; 				m->m[7] = 0; 				m->m[11] = -1;					m->m[15] = 0;
+}
+
+void update_viewport_matrix(double lv, double rv, double bv, double tv)
+{
+	matrix4x4f *m = &viewport;
+	m->m[0] = (rv - lv) / 2;	m->m[4] = 0;				m->m[8] = 0;	m->m[12] = (rv + lv) / 2;
+	m->m[1] = 0;				m->m[5] = (tv - bv) / 2;	m->m[9] = 0;	m->m[13] = (tv + bv) / 2;
+	m->m[2] = 0;				m->m[6] = 0;				m->m[10] = 1;	m->m[14] = 0;
+	m->m[3] = 0; 				m->m[7] = 0; 				m->m[11] = 0;	m->m[15] = 1;
+}
+
+void updateFPS(int value) {
+	fps = frameCounter;
+	frameCounter = 0;
+
+	glutTimerFunc(1000/*1sec*/, updateFPS, 0);
+}
+
+void updateFPS2(int value) {
+	fps2 = frameCounter2;
+	frameCounter2 = 0;
+
+	glutTimerFunc(1000/*1sec*/, updateFPS2, 0);
+}
 
 //Draw model
 void Draw(Model m)
 {
-	if (g_CurrentShading == SHADING_SOLID)
+	if (g_DrawingMode == 0)
 	{
 		for (int i = 0; i < m.numTriangles; i++)
 		{
@@ -137,7 +149,7 @@ void Draw(Model m)
 			glEnd();
 		}
 	}
-	else if (g_CurrentShading == SHADING_WIRE)
+	else if (g_DrawingMode == 1)
 	{
 		for (int i = 0; i < m.numTriangles; i++)
 		{
@@ -181,151 +193,125 @@ void set_camera_position_auto()
 	g_cam.set({ obj_center[0], obj_center[1], (obj_center[0] + (m.max.x - m.min.x) / 2) }, 
 				{ obj_center[0], obj_center[1], obj_center[2] },
 				{ 0, 1, 0 });
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadMatrixf(modelview.m); // load OpenGL’s modelview matrix
 }
 
-void multiply_matrixes(float m1[16], float m2[16], Matrix *res)
+void DrawClose2GLTriangle(vector4f v0, vector4f v1, vector4f v2)
 {
-	/*
-		mat setup:
-		m[0]	m[4]	m[8]	m[12]
-		m[1]	m[5]	m[9]	m[13]
-		m[2]	m[6]	m[10]	m[14]
-		m[3]	m[7]	m[11]	m[15]
-	*/
-
-	res->m[0] = m1[0] * m2[0] + m1[4] * m2[1] + m1[8] * m2[2] + m1[12] * m2[3];
-	//res[1] = m1[1 5 9 13] x m2[0 1 2 3]
-	res->m[1] = m1[1] * m2[0] + m1[5] * m2[1] + m1[9] * m2[2] + m1[13] * m2[3];
-	//res[2] = m1[2 6 10 14] x m2[0 1 2 3]
-	res->m[2] = m1[2] * m2[0] + m1[6] * m2[1] + m1[10] * m2[2] + m1[14] * m2[3];
-	//res[3] = m1[3 7 11 15] x m2[0 1 2 3]
-	res->m[3] = m1[3] * m2[0] + m1[7] * m2[1] + m1[11] * m2[2] + m1[15] * m2[3];
-
-	//res[4] = m1[0 4 8 12] x m2[4 5 6 7]
-	res->m[4] = m1[0] * m2[4] + m1[4] * m2[5] + m1[8] * m2[6] + m1[12] * m2[7];
-	//res[5] = m1[1 5 9 13] x m2[4 5 6 7]
-	res->m[5] = m1[1] * m2[4] + m1[5] * m2[5] + m1[9] * m2[6] + m1[13] * m2[7];
-	//res[6] = m1[2 6 10 14] x m2[4 5 6 7]
-	res->m[6] = m1[2] * m2[4] + m1[6] * m2[5] + m1[10] * m2[6] + m1[14] * m2[7];
-	//res[7] = m1[3 7 11 15] x m2[4 5 6 7]
-	res->m[7] = m1[3] * m2[4] + m1[7] * m2[5] + m1[11] * m2[6] + m1[15] * m2[7];
-
-	//res[8] = m1[0 4 8 12] x m2[8 9 10 11]
-	res->m[8] = m1[0] * m2[8] + m1[4] * m2[9] + m1[8] * m2[10] + m1[12] * m2[11];
-	//res[9] = m1[1 5 9 13] x m2[8 9 10 11]
-	res->m[9] = m1[1] * m2[8] + m1[5] * m2[9] + m1[9] * m2[10] + m1[13] * m2[11];
-	//res[10] = m1[2 6 10 14] x m2[8 9 10 11]
-	res->m[10] = m1[2] * m2[8] + m1[6] * m2[9] + m1[10] * m2[10] + m1[14] * m2[11];
-	//res[11] = m1[3 7 11 15]
-	res->m[11] = m1[3] * m2[8] + m1[7] * m2[9] + m1[11] * m2[10] + m1[15] * m2[11];
-
-	//res[12] = m1[0 4 8 12] x m2[12 13 14 15]
-	res->m[12] = m1[0] * m2[12] + m1[4] * m2[13] + m1[8] * m2[14] + m1[12] * m2[15];
-	//res[13] = m1[1 5 9 13] x m2[12 13 14 15]
-	res->m[13] = m1[1] * m2[12] + m1[5] * m2[13] + m1[9] * m2[14] + m1[13] * m2[15];
-	//res[14] = m1[2 6 10 14] x m2[12 13 14 15]
-	res->m[14] = m1[2] * m2[12] + m1[6] * m2[13] + m1[10] * m2[14] + m1[14] * m2[15];
-	//res[15] = m1[3 7 11 15] x m2[12 13 14 15]
-	res->m[15] = m1[3] * m2[12] + m1[7] * m2[13] + m1[11] * m2[14] + m1[15] * m2[15];
-}
-
-void multiply_vec_by_matrix(float vec[4], float m[16], Vec *res)
-{
-	/*
-		mat setup:
-		m[0]	m[4]	m[8]	m[12]
-		m[1]	m[5]	m[9]	m[13]
-		m[2]	m[6]	m[10]	m[14]
-		m[3]	m[7]	m[11]	m[15]
-	*/
-
-	res->v[0] = m[0] * vec[0] + m[4] * vec[1] + m[8] * vec[2] + m[12] * vec[3];
-	res->v[1] = m[1] * vec[0] + m[5] * vec[1] + m[9] * vec[2] + m[13] * vec[3];
-	res->v[2] = m[2] * vec[0] + m[6] * vec[1] + m[10] * vec[2] + m[14] * vec[3];
-	res->v[3] = m[3] * vec[0] + m[7] * vec[1] + m[11] * vec[2] + m[15] * vec[3];
-}
-
-void DrawClose2GLTriangles()
-{
-	
+	if (g_DrawingMode == 0)
+	{
+		glColor3f(g_MatDiffuse[0], g_MatDiffuse[1], g_MatDiffuse[2]);
+		glBegin(GL_TRIANGLES);
+		glVertex2f(v0.x, v0.y);
+		glVertex2f(v1.x, v1.y);
+		glVertex2f(v2.x, v2.y);
+		glEnd();
+	}
+	else if (g_DrawingMode == 1)
+	{
+		glColor3f(g_MatDiffuse[0], g_MatDiffuse[1], g_MatDiffuse[2]);
+		glBegin(GL_LINES);
+		glVertex2f(v0.x, v0.y);
+		glVertex2f(v1.x, v1.y);
+		glVertex2f(v2.x, v2.y);
+		glEnd();
+	}
+	else
+	{
+		glColor3f(g_MatDiffuse[0], g_MatDiffuse[1], g_MatDiffuse[2]);
+		glBegin(GL_POINTS);
+		glVertex2f(v0.x, v0.y);
+		glVertex2f(v1.x, v1.y);
+		glVertex2f(v2.x, v2.y);
+		glEnd();
+	}
 }
 
 void DisplayClose2GL(void)
 {
+	glutSetWindow(close2GLWindow);
 	float v[4]; // will be used to set light parameters
+	update_modelview_matrix();
 
 	// Clear frame buffer
 	glClearColor(0, 0, 0, 1);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glEnable(GL_NORMALIZE);
 
-	// viewport and frustum setup
-	// set up viewport and projection matrixes.
-
-	glViewport(0, 0, width, height);
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	gluPerspective(g_FOVY, (double)g_FOVX / g_FOVY, g_ZNear, g_ZFar);
-
-	//compute modelviewproj (MP) matrix
-	Matrix PM;
-	multiply_matrixes(ProjectionMat, g_cam.m, &PM);
-
-	//for each vertex, multiply it by PM matriz to obtain projected vertexes.
+	//for each vertex, multiply it by model + projected matrixes to obtain projected vertexes.
 	for (int i = 0; i < m.numTriangles; i++)
 	{
-		Vec v0, v1, v2;
+		//by modelview
+		vector4f v0 = vector4f(m.triangles[i].v0.x, m.triangles[i].v0.y, m.triangles[i].v0.z, 1);
+		modelview.transformVector(&v0);
+
+		vector4f v1 = vector4f(m.triangles[i].v1.x, m.triangles[i].v1.y, m.triangles[i].v1.z, 1);
+		modelview.transformVector(&v1);
+
+		vector4f v2 = vector4f(m.triangles[i].v2.x, m.triangles[i].v2.y, m.triangles[i].v2.z, 1);
+		modelview.transformVector(&v2);
+
+		//by projection matrix
+		projection.transformVector(&v0);
+		projection.transformVector(&v1);
+		projection.transformVector(&v2);
+	
+
+		/*	Clipping against the normalized perspective view volume is trivial. Points inside
+			the view volume are defined by abs(x), abs(y), abs(z) ≤ abs(w).Why ?
+			(to simplify your task, you can clip the whole triangle if at least one of its vertices
+			fall outside the view volume). 
+		*/
+
+		// clip
 		
-		float v[4] = { m.triangles[i].v0.x, m.triangles[i].v0.y, m.triangles[i].v0.z, 1 };
-		multiply_vec_by_matrix(v, PM.m, &v0);
+		double w1 = abs(v0.w);
+		double w2 = abs(v1.w);
+		double w3 = abs(v2.w);
 
-		v[0] = m.triangles[i].v1.x; v[1] = m.triangles[i].v1.y; v[2] = m.triangles[i].v1.z;
-		multiply_vec_by_matrix(v, PM.m, &v1);
+		if (abs(v0.x) <= w1 &&
+			abs(v0.y) <= w1 &&
+			abs(v0.z) <= w1 &&
 
-		v[0] = m.triangles[i].v2.x; v[1] = m.triangles[i].v2.y; v[2] = m.triangles[i].v2.z;
-		multiply_vec_by_matrix(v, PM.m, &v2);
+			abs(v1.x) <= w2 &&
+			abs(v1.y) <= w2 &&
+			abs(v1.z) <= w2 &&
+
+			abs(v2.x) <= w3 &&
+			abs(v2.y) <= w3 &&
+			abs(v2.z) <= w3)
+		{
+			//perform persp division then viewport mapping
+
+			v0 = v0 / v0.w;
+			v1 = v1 / v1.w;
+			v2 = v2 / v2.w;
+
+			viewport.transformVector(&v0);
+			viewport.transformVector(&v1);
+			viewport.transformVector(&v2);
+
+			DrawClose2GLTriangle(v0, v1, v2);
+		}
+		
 	}
-
-	//then clip
-
-	//then multiply it by the viewport matrix to obtain pixel coordinates
-	
-	//then draw it on screen.
-	
-
-	// Set light
-	glEnable(GL_LIGHTING);
-	glEnable(GL_LIGHT0);
-	v[0] = v[1] = v[2] = g_LightMultiplier*0.4f; v[3] = 1.0f;
-	glLightfv(GL_LIGHT0, GL_AMBIENT, v);
-	v[0] = v[1] = v[2] = g_LightMultiplier*0.8f; v[3] = 1.0f;
-	glLightfv(GL_LIGHT0, GL_DIFFUSE, v);
-	v[0] = -g_LightDirection[0]; v[1] = -g_LightDirection[1]; v[2] = -g_LightDirection[2]; v[3] = 0.0f;
-	glLightfv(GL_LIGHT0, GL_POSITION, v);
-
-	// Set material
-	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, g_MatAmbient);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, g_MatDiffuse);
-
-	// Rotate and draw shape
-	glPushMatrix();
-	glScalef(g_Zoom, g_Zoom, g_Zoom);
-	Draw(m);
-	glPopMatrix();
-
-	// Draw tweak bars
-	TwDraw();
 
 	// Present frame buffer
 	glutSwapBuffers();
+	//glFlush();
 
 	// Recall Display at next frame
-	glutPostRedisplay();
+	//glutPostRedisplay();
 }
 
 
 // Callback function called by GLUT to render screen
 void Display(void)
 {
+	glutSetWindow(mainWindow);
+
 	float v[4]; // will be used to set light parameters
 
 	// Clear frame buffer
@@ -333,10 +319,14 @@ void Display(void)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// viewport and frustum setup
-	glViewport(0, 0, width, height);
+	glViewport(0, 0, (GLsizei)width, (GLsizei)height);
+
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(g_FOVY, (double)g_FOVX / g_FOVY, g_ZNear, g_ZFar);
+	gluPerspective(g_FOVY, tan(g_FOVX*PI / 360) / tan(g_FOVY*PI / 360), g_ZNear, g_ZFar);
+
+	//glMatrixMode(GL_MODELVIEW);
+	//glLoadMatrixf(modelview.m); // load OpenGL’s modelview matrix
 
 	// camera setup
 	if (g_LookAtObject)
@@ -368,6 +358,7 @@ void Display(void)
 		glDisable(GL_CULL_FACE);
 	glEnable(GL_NORMALIZE);
 
+
 	// Set light
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
@@ -384,7 +375,7 @@ void Display(void)
 
 	// Rotate and draw shape
 	glPushMatrix();
-	glScalef(g_Zoom, g_Zoom, g_Zoom);
+	//glScalef(g_Zoom, g_Zoom, g_Zoom);
 	//if (g_CurrentShading == SHADING_SOLID)
 	//	glutSolidTeapot(1.0);
 	//else
@@ -392,70 +383,113 @@ void Display(void)
 	Draw(m);
 	glPopMatrix();
 
-	// Draw tweak bars
-	TwDraw();
-
 	// Present frame buffer
 	glutSwapBuffers();
 
 	// Recall Display at next frame
+	glutSetWindow(mainWindow);
 	glutPostRedisplay();
 }
 
 // Callback function called by GLUT when window size changes
-void Reshape(int width, int height)
+void Reshape(int w, int h)
 {
-	// Set OpenGL viewport and camera
+	glutSetWindow(mainWindow);
+	
+	glViewport(0, 0, (GLsizei)width, (GLsizei)height);
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(g_FOVY, tan(g_FOVX*PI / 360) / tan(g_FOVY*PI / 360), g_ZNear, g_ZFar);
+	
+	/*// Set OpenGL viewport and camera
 	glViewport(0, 0, width, height);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	gluPerspective(40, (double)width / height, 1, 10);
-	//glMatrixMode(GL_MODELVIEW);
-	//glLoadIdentity();
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
 	//gluLookAt(g_CamPosition[0], g_CamPosition[1], g_CamPosition[2], 0, 0, 0, 0, 1, 0);
-	glTranslatef(0, 0.6f, -1);
+	//glTranslatef(0, 0.6f, -1);
+	*/
 
-	// Send the new window size to AntTweakBar
-	TwWindowSize(width, height);
+	glMatrixMode(GL_MODELVIEW);
+
+	glutPostRedisplay();
 }
 
-// Function called at exit
-void Terminate(void)
+void ReshapeClose2GL(int w, int h)
 {
-	TwTerminate();
+	glutSetWindow(close2GLWindow);
+
+	//allocMatrixes();
+
+	glViewport(0, 0, (GLsizei)w, (GLsizei)h);
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluOrtho2D(0., width, 0., height);
+
+	glMatrixMode(GL_MODELVIEW);
+
+	update_projection_matrix();
+
+	update_viewport_matrix(0., width, 0., height); //same params of gluOrtho2D
+
+	glutPostRedisplay();
 }
 
-//  Callback function called when the 'LookAtObject' variable value of the tweak bar has changed
-void TW_CALL SetLookAtObjectCB(const void *value, void *clientData)
+void updateWindows(int nil = 0)
 {
-	(void)clientData; // unused
-
-	g_LookAtObject = *(const int *)value; // copy value to LookAtObject
+	glutSetWindow(close2GLWindow);
+	glutPostRedisplay();
+	glutSetWindow(mainWindow);
+	glutPostRedisplay();
 }
 
-//  Callback function called by the tweak bar to get the 'LookAtObject' value
-void TW_CALL GetLookAtObjectCB(void *value, void *clientData)
+void updateSettings(int nil)
 {
-	(void)clientData; // unused
-	*(int *)value = g_LookAtObject; // copy LookAtObject to value
+	glutSetWindow(mainWindow);
+
+	// OpenGL
+	//switch (shadeOpt) {
+	//case 0: glShadeModel(GL_SMOOTH); break;
+	//case 1: glShadeModel(GL_FLAT); break;
+	//}
+	g_PerformBFCulling ? glEnable(GL_CULL_FACE) : glDisable(GL_CULL_FACE);
+	//switch (orientationOpt) {
+	//case 0: glFrontFace(GL_CW); break;
+	//case 1: glFrontFace(GL_CCW); break;
+	//}
+
+	updateWindows();
 }
 
-//  Callback function called when the 'BFCulling' variable value of the tweak bar has changed
-void TW_CALL SetBFCullingCB(const void *value, void *clientData)
+void TranslateCam() 
 {
-	(void)clientData; // unused
+	g_cam.slide(g_CamTranslation[0], g_CamTranslation[1], g_CamTranslation[2]);
 
-	g_PerformBFCulling = *(const int *)value; // copy value to g_PerformBFCulling
+	// must be vec up = {0,1,0}, otherwise it won't work ==> WHY?
+	if (g_LookAtObject)
+		g_cam.set(g_cam.eye, { obj_center[0], obj_center[1], obj_center[2] }, { 0, 1, 0 });
+
+	updateWindows();
 }
 
-//  Callback function called by the tweak bar to get the 'BFCulling' value
-void TW_CALL GetBFCullingCB(void *value, void *clientData)
+void RotateCam()
 {
-	(void)clientData; // unused
-	*(int *)value = g_PerformBFCulling; // copy g_PerformBFCulling to value
+	g_cam.rotateU(g_CamRotation[0]);
+	g_cam.rotateV(g_CamRotation[1]);
+	g_cam.rotateN(g_CamRotation[2]);
+
+	// must be vec up = {0,1,0}, otherwise it won't work ==> WHY?
+	if (g_LookAtObject)
+		g_cam.set(g_cam.eye, { obj_center[0], obj_center[1], obj_center[2] }, { 0, 1, 0 });
+
+	updateWindows();
 }
 
-void TW_CALL ResetCam(void * /*clientData*/)
+void ResetCam()
 {
 	set_camera_position_auto();
 
@@ -466,153 +500,103 @@ void TW_CALL ResetCam(void * /*clientData*/)
 	g_CamRotation[0] = 0.0f;
 	g_CamRotation[1] = 0.0f;
 	g_CamRotation[2] = 0.0f;
+
+	updateWindows();
 }
 
-void TW_CALL TranslateCB(void * /*clientData*/)
-{
-	g_cam.slide(g_CamTranslation[0], g_CamTranslation[1], g_CamTranslation[2]);
-
-	// must be vec up = {0,1,0}, otherwise it won't work ==> WHY?
-	if (g_LookAtObject)
-		g_cam.set(g_cam.eye, { obj_center[0], obj_center[1], obj_center[2] }, { 0, 1, 0 });
-
-}
-
-void TW_CALL RotateCB(void * /*clientData*/)
-{
-	g_cam.rotateU(g_CamRotation[0]);
-	g_cam.rotateV(g_CamRotation[1]);
-	g_cam.rotateN(g_CamRotation[2]);
-	
-	// must be vec up = {0,1,0}, otherwise it won't work ==> WHY?
-	if (g_LookAtObject)
-		g_cam.set(g_cam.eye, { obj_center[0], obj_center[1], obj_center[2] }, { 0, 1, 0 });
-
-}
-
-void TW_CALL LoadModel(void * /*clientData*/)
+void LoadModel()
 {
 	m = Model(filename);
-	//set_camera_position_auto();
+	set_camera_position_auto();
+
+	updateWindows();
+}
+
+void ReshapeBothWindows()
+{
+	Reshape(width, height);
+	ReshapeClose2GL(width, height);
+}
+
+void createGuiWindow()
+{
+	GLUI *glui = GLUI_Master.create_glui("", 0, 100 + width + 10, 500 - 30);
+
+	GLUI_Panel *mp = glui->add_panel("Model");
+	GLUI_Panel *mpm = glui->add_panel_to_panel(mp, "");
+	glui->add_edittext_to_panel(mpm, "File name:", GLUI_EDITTEXT_TEXT, filename);
+	glui->add_button_to_panel(mpm, "Load", 0, (GLUI_Update_CB)LoadModel);
+
+	//GLUI_Listbox *orientations = glui->add_listbox_to_panel(mp, "V. Orientation: ", &orientationOpt, 0, updateSettings);
+	//orientations->add_item(0, "CW");
+	//orientations->add_item(1, "CCW");
+
+	GLUI_Listbox *models = glui->add_listbox_to_panel(mp, "Drawing Mode: ", &g_DrawingMode, 0, updateSettings);
+	models->add_item(0, "Solid");
+	models->add_item(1, "Wire");
+	models->add_item(2, "Points");
+	glui->add_checkbox_to_panel(mp, "Backface Culling?", &g_PerformBFCulling, 0, updateSettings);
+
+	GLUI_Panel *mpc = glui->add_panel_to_panel(mp, "Coloring");
+	GLUI_Spinner *rSpin = glui->add_spinner_to_panel(mpc, "R:", GLUI_SPINNER_FLOAT, &g_MatDiffuse[0]);
+	rSpin->set_float_limits(0., 1., GLUI_LIMIT_CLAMP);
+	GLUI_Spinner *gSpin = glui->add_spinner_to_panel(mpc, "G:", GLUI_SPINNER_FLOAT, &g_MatDiffuse[1]);
+	gSpin->set_float_limits(0., 1., GLUI_LIMIT_CLAMP);
+	GLUI_Spinner *bSpin = glui->add_spinner_to_panel(mpc, "B:", GLUI_SPINNER_FLOAT, &g_MatDiffuse[2]);
+	bSpin->set_float_limits(0., 1., GLUI_LIMIT_CLAMP);
+
+	GLUI_Panel *cp = glui->add_panel("Camera");
+
+	GLUI_Panel *cptr = glui->add_panel_to_panel(cp, "Movement");
+	glui->add_checkbox_to_panel(mp, "Look at object?", &g_LookAtObject, 0, updateSettings);
+	glui->add_spinner_to_panel(cptr, "translation u:", GLUI_SPINNER_FLOAT, &g_CamTranslation[0]);
+	glui->add_spinner_to_panel(cptr, "translation v:", GLUI_SPINNER_FLOAT, &g_CamTranslation[1]);
+	glui->add_spinner_to_panel(cptr, "translation n:", GLUI_SPINNER_FLOAT, &g_CamTranslation[2]);
+	glui->add_button_to_panel(cptr, "Translate", 0, (GLUI_Update_CB)TranslateCam);
+	glui->add_spinner_to_panel(cptr, "rotation u:", GLUI_SPINNER_FLOAT, &g_CamRotation[0]);
+	glui->add_spinner_to_panel(cptr, "rotation v:", GLUI_SPINNER_FLOAT, &g_CamRotation[1]);
+	glui->add_spinner_to_panel(cptr, "rotation n:", GLUI_SPINNER_FLOAT, &g_CamRotation[2]);
+	glui->add_button_to_panel(cptr, "Rotate", 0, (GLUI_Update_CB)RotateCam);
+	
+	GLUI_Panel *cpo = glui->add_panel_to_panel(cp, "Other");
+	glui->add_spinner_to_panel(cpo, "fovx:", GLUI_SPINNER_FLOAT, &g_FOVX, 0, (GLUI_Update_CB)ReshapeBothWindows);
+	glui->add_spinner_to_panel(cpo, "fovy:", GLUI_SPINNER_FLOAT, &g_FOVY, 0, (GLUI_Update_CB)ReshapeBothWindows);
+	glui->add_spinner_to_panel(cpo, "Near Clip:", GLUI_SPINNER_FLOAT, &g_ZNear, 0, (GLUI_Update_CB)ReshapeBothWindows);
+	glui->add_spinner_to_panel(cpo, "Far Clip:", GLUI_SPINNER_FLOAT, &g_ZFar, 0, (GLUI_Update_CB)ReshapeBothWindows);
+	glui->add_button_to_panel(cpo, "Reset position", 0, (GLUI_Update_CB)ResetCam);
+
+	glui->add_button("EXIT", 0, exit);
+	glui->set_main_gfx_window(mainWindow);
 }
 
 // Main
 int main(int argc, char *argv[])
 {
-	TwBar *bar; // Pointer to the tweak bar
 	float axis[] = { 0.7f, 0.7f, 0.0f }; // initial model rotation
 	float angle = 0.8f;
 
 	m = Model(filename);
 	set_camera_position_auto();
 
-	// Initialize GLUT
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-	glutInitWindowSize(1280, 720);
-	glutCreateWindow("Programming Assignment 2");
-	glutCreateMenu(NULL);
+	glutInitWindowSize(width, height);
+	//glutCreateWindow("OpenGL");
 
-	// Set GLUT callbacks
-	glutDisplayFunc(DisplayClose2GL);
+	//OpenGL Window
+	mainWindow = glutCreateWindow("OpenGL");
+	glutDisplayFunc(Display);
 	glutReshapeFunc(Reshape);
-	atexit(Terminate);  // Called after glutMainLoop ends
+	//GLUI_Master.set_glutIdleFunc(Display);
+	
+	glutInitWindowPosition(width + 260, 0);
+	close2GLWindow = glutCreateWindow("Close2GL");
+	glutDisplayFunc(DisplayClose2GL);
+	glutReshapeFunc(ReshapeClose2GL);
+	//GLUI_Master.set_glutIdleFunc(DisplayClose2GL);
 
-	// Initialize AntTweakBar
-	TwInit(TW_OPENGL, NULL);
-
-	// Set GLUT event callbacks
-	// - Directly redirect GLUT mouse button events to AntTweakBar
-	glutMouseFunc((GLUTmousebuttonfun)TwEventMouseButtonGLUT);
-	// - Directly redirect GLUT mouse motion events to AntTweakBar
-	glutMotionFunc((GLUTmousemotionfun)TwEventMouseMotionGLUT);
-	// - Directly redirect GLUT mouse "passive" motion events to AntTweakBar (same as MouseMotion)
-	glutPassiveMotionFunc((GLUTmousemotionfun)TwEventMouseMotionGLUT);
-	// - Directly redirect GLUT key events to AntTweakBar
-	glutKeyboardFunc((GLUTkeyboardfun)TwEventKeyboardGLUT);
-	// - Directly redirect GLUT special key events to AntTweakBar
-	glutSpecialFunc((GLUTspecialfun)TwEventSpecialGLUT);
-	// - Send 'glutGetModifers' function pointer to AntTweakBar;
-	//   required because the GLUT key event functions do not report key modifiers states.
-	TwGLUTModifiersFunc(glutGetModifiers);
-
-	// Create a tweak bar
-	bar = TwNewBar("Assignment 1");
-	TwDefine(" GLOBAL help='This example shows how to integrate AntTweakBar with GLUT and OpenGL.' "); // Message added to the help bar.
-	TwDefine(" TweakBar size='200 700' color='96 216 224' "); // change default tweak bar size and color
-
-	//cam position
-	TwAddVarRW(bar, "CamPosition", TW_TYPE_DIR3F, &g_cam.eye,
-		" label='Camera Position' opened=false help='Change the camera position.' ");
-
-	// cam translation
-	TwAddVarRW(bar, "CamTranslation", TW_TYPE_DIR3F, &g_CamTranslation,
-		" label='Camera Translation' opened=true help='Translate camera along u v or n.' ");
-
-	// translate confirmation
-	TwAddButton(bar, "Translate", TranslateCB, NULL, " label='Translate' ");
-
-	// cam rotation
-	TwAddVarRW(bar, "CamRotation", TW_TYPE_DIR3F, &g_CamRotation,
-		" label='Camera Rotation' opened=true help='Rotate camera along u v or n.' ");
-
-	// rotate confirmation
-	TwAddButton(bar, "Rotate", RotateCB, NULL, " label='Rotate' ");
-
-	// Look at object?
-	TwAddVarCB(bar, "LookAtObject", TW_TYPE_BOOL32, SetLookAtObjectCB, GetLookAtObjectCB, NULL,
-		" label='Look at object' key=space help='Toggle look at object.' ");
-	// ...
-	TwAddButton(bar, "Reset", ResetCam, NULL, " label='Reset' ");
-
-	// clipping plane
-	// z far
-	TwAddVarRW(bar, "Z Far", TW_TYPE_FLOAT, &g_ZFar,
-		" min=0.0 max=4000.0 step=0.5 keyIncr=f keyDecr=F help='Rotate camera along z axis ' ");
-
-	// z near
-	TwAddVarRW(bar, "Z Near", TW_TYPE_FLOAT, &g_ZNear,
-		" min=0.0 max=100.0 step=0.5 keyIncr=n keyDecr=N help='Rotate camera along z axis ' ");
-
-	// fov x
-	TwAddVarRW(bar, "FOV x", TW_TYPE_FLOAT, &g_FOVX,
-		" min=0.0 max=500.0 step=0.5 keyIncr=f keyDecr=F help='Rotate camera along z axis ' ");
-
-	// fov y
-	TwAddVarRW(bar, "FOV y", TW_TYPE_FLOAT, &g_FOVY,
-		" min=0.0 max=500.0 step=0.5 keyIncr=n keyDecr=N help='Rotate camera along z axis ' ");
-
-	// object/model variables
-
-	// shading mode
-	// (before adding an enum variable, its enum type must be declared to AntTweakBar as follow)
-	{
-		// ShapeEV associates Shape enum values with labels that will be displayed instead of enum values
-		TwEnumVal shadingEV[NUM_SHADING] = { { SHADING_POINTS, "Points" }, { SHADING_WIRE, "Wire" }, { SHADING_SOLID, "Solid" } };
-		// Create a type for the enum shapeEV
-		TwType shadingType = TwDefineEnum("ShapeType", shadingEV, NUM_SHADING);
-		// add 'g_CurrentShape' to 'bar': this is a variable of type ShapeType. Its key shortcuts are [<] and [>].
-		TwAddVarRW(bar, "Shading", shadingType, &g_CurrentShading, " keyIncr='<' keyDecr='>' help='Change object shape.' ");
-	}
-
-	// Back Face Culling?
-	TwAddVarCB(bar, "BFCulling", TW_TYPE_BOOL32, SetBFCullingCB, GetBFCullingCB, NULL,
-		" label='Back Face Culling' key=enter help='Toggle back face culling.' ");
-
-	// Add 'g_MatAmbient' to 'bar': this is a variable of type TW_TYPE_COLOR3F (3 floats color, alpha is ignored)
-	// and is inserted into a group named 'Material'.
-	TwAddVarRW(bar, "Ambient", TW_TYPE_COLOR3F, &g_MatAmbient, " group='Material' ");
-
-	// Add 'g_MatDiffuse' to 'bar': this is a variable of type TW_TYPE_COLOR3F (3 floats color, alpha is ignored)
-	// and is inserted into group 'Material'.
-	TwAddVarRW(bar, "Diffuse", TW_TYPE_COLOR3F, &g_MatDiffuse, " group='Material' ");
-
-	// load .obj file
-	TwAddVarRW(bar, "Filename", TW_TYPE_CSSTRING(sizeof(filename)), filename, " label='file' group=CDString help='type file name.' ");
-
-	// ...
-	TwAddButton(bar, "Load", LoadModel, NULL, " label='Load Model' ");
-
+	createGuiWindow();
+	
 	// Call the GLUT main loop
 	glutMainLoop();
 

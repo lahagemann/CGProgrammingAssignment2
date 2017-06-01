@@ -1,0 +1,81 @@
+﻿Build started 30/05/2017 15:19:13.
+     1>Project "D:\Downloads\glui-2.35\glui-2.35\src\msvc\glui.vcxproj" on node 2 (Rebuild target(s)).
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V120\Microsoft.CppBuild.targets(388,5): warning MSB8028: The intermediate directory (.\Debug\) contains files shared from another project (example1.vcxproj, example2.vcxproj, example3.vcxproj, example4.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I../include /Z7 /nologo /W1 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _WINDOWS /Gm- /EHsc /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /GR /Fo".\Debug/" /Fd".\Debug/vc120.pdb" /Gd /TP /analyze- /errorReport:prompt ..\algebra3.cpp ..\arcball.cpp ..\glui.cpp ..\glui_add_controls.cpp ..\glui_bitmaps.cpp ..\glui_bitmap_img_data.cpp ..\glui_button.cpp ..\glui_checkbox.cpp ..\glui_column.cpp ..\glui_commandline.cpp ..\glui_control.cpp ..\glui_edittext.cpp ..\glui_filebrowser.cpp ..\glui_list.cpp ..\glui_listbox.cpp ..\glui_mouse_iaction.cpp ..\glui_node.cpp ..\glui_panel.cpp ..\glui_radio.cpp ..\glui_rollout.cpp ..\glui_rotation.cpp ..\glui_scrollbar.cpp ..\glui_separator.cpp ..\glui_spinner.cpp ..\glui_statictext.cpp ..\glui_string.cpp ..\glui_textbox.cpp ..\glui_translation.cpp ..\glui_tree.cpp ..\glui_treepanel.cpp ..\glui_window.cpp ..\quaternion.cpp
+         algebra3.cpp
+         arcball.cpp
+         glui.cpp
+         glui_add_controls.cpp
+         glui_bitmaps.cpp
+         glui_bitmap_img_data.cpp
+         glui_button.cpp
+         glui_checkbox.cpp
+         glui_column.cpp
+         glui_commandline.cpp
+         glui_control.cpp
+         glui_edittext.cpp
+         glui_filebrowser.cpp
+         glui_list.cpp
+         glui_listbox.cpp
+         glui_mouse_iaction.cpp
+         glui_node.cpp
+         glui_panel.cpp
+         glui_radio.cpp
+         glui_rollout.cpp
+         Generating Code...
+         Compiling...
+         glui_rotation.cpp
+         glui_scrollbar.cpp
+         glui_separator.cpp
+         glui_spinner.cpp
+         glui_statictext.cpp
+         glui_string.cpp
+         glui_textbox.cpp
+         glui_translation.cpp
+         glui_tree.cpp
+         glui_treepanel.cpp
+         glui_window.cpp
+         quaternion.cpp
+         Generating Code...
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V120\Microsoft.CppBuild.targets(1361,5): warning MSB8012: TargetPath(D:\Downloads\glui-2.35\glui-2.35\src\msvc\.\Debug\_glui library.lib) does not match the Library's OutputFile property value (D:\Downloads\glui-2.35\glui-2.35\src\msvc\lib\glui32.lib). This may cause your project to build incorrectly. To correct this, please make sure that $(OutDir), $(TargetName) and $(TargetExt) property values match the value specified in %(Lib.OutputFile).
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V120\Microsoft.CppBuild.targets(1363,5): warning MSB8012: TargetName(_glui library) does not match the Library's OutputFile property value (glui32). This may cause your project to build incorrectly. To correct this, please make sure that $(OutDir), $(TargetName) and $(TargetExt) property values match the value specified in %(Lib.OutputFile).
+       Lib:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\Lib.exe /OUT:"lib\glui32.lib" glut32.lib /NOLOGO .\Debug/algebra3.obj
+         .\Debug/arcball.obj
+         .\Debug/glui.obj
+         .\Debug/glui_add_controls.obj
+         .\Debug/glui_bitmaps.obj
+         .\Debug/glui_bitmap_img_data.obj
+         .\Debug/glui_button.obj
+         .\Debug/glui_checkbox.obj
+         .\Debug/glui_column.obj
+         .\Debug/glui_commandline.obj
+         .\Debug/glui_control.obj
+         .\Debug/glui_edittext.obj
+         .\Debug/glui_filebrowser.obj
+         .\Debug/glui_list.obj
+         .\Debug/glui_listbox.obj
+         .\Debug/glui_mouse_iaction.obj
+         .\Debug/glui_node.obj
+         .\Debug/glui_panel.obj
+         .\Debug/glui_radio.obj
+         .\Debug/glui_rollout.obj
+         .\Debug/glui_rotation.obj
+         .\Debug/glui_scrollbar.obj
+         .\Debug/glui_separator.obj
+         .\Debug/glui_spinner.obj
+         .\Debug/glui_statictext.obj
+         .\Debug/glui_string.obj
+         .\Debug/glui_textbox.obj
+         .\Debug/glui_translation.obj
+         .\Debug/glui_tree.obj
+         .\Debug/glui_treepanel.obj
+         .\Debug/glui_window.obj
+         .\Debug/quaternion.obj
+         glui.vcxproj -> D:\Downloads\glui-2.35\glui-2.35\src\msvc\.\Debug\_glui library.lib
+     1>Done Building Project "D:\Downloads\glui-2.35\glui-2.35\src\msvc\glui.vcxproj" (Rebuild target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:19.98

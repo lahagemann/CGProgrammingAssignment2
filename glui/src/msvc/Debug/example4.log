@@ -1,0 +1,12 @@
+﻿Build started 30/05/2017 15:19:34.
+     1>Project "D:\Downloads\glui-2.35\glui-2.35\src\msvc\example4.vcxproj" on node 5 (Rebuild target(s)).
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V120\Microsoft.CppBuild.targets(388,5): warning MSB8028: The intermediate directory (.\Debug\) contains files shared from another project (example1.vcxproj, example2.vcxproj, example3.vcxproj, _glui library.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I../include /ZI /nologo /W1 /WX- /Od /Oy- /D GLUI_NO_LIB_PRAGMA /D _MBCS /Gm- /EHsc /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo".\Debug/" /Fd".\Debug/vc120.pdb" /Gd /TP /analyze- /errorReport:prompt ..\example\example4.cpp
+         example4.cpp
+     1>d:\downloads\glui-2.35\glui-2.35\src\example\example4.cpp : fatal error C1041: cannot open program database 'd:\downloads\glui-2.35\glui-2.35\src\msvc\debug\vc120.pdb'; if multiple CL.EXE write to the same .PDB file, please use /FS
+     1>Done Building Project "D:\Downloads\glui-2.35\glui-2.35\src\msvc\example4.vcxproj" (Rebuild target(s)) -- FAILED.
+
+Build FAILED.
+
+Time Elapsed 00:00:01.50

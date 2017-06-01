@@ -22,8 +22,8 @@ void Camera::setModelViewMatrix(void)
 	m[2] = n.x;		m[6] = n.y;		m[10] = n.z;	m[14] = -dot(eVec, n);
 	m[3] = 0;		m[7] = 0;		m[11] = 0;		m[15] = 1.0;
 
-	glMatrixMode(GL_MODELVIEW);
-	glLoadMatrixf(m); // load OpenGL’s modelview matrix
+	//glMatrixMode(GL_MODELVIEW);
+	//glLoadMatrixf(m); // load OpenGL’s modelview matrix
 }
 
 void Camera::set(Point Eye, Point look, Vector3f up)
