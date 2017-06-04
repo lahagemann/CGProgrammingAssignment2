@@ -25,10 +25,10 @@ Model::~Model()
 void Model::load(char *FileName)
 {
 	//double cx = 0.0, cy = 0.0, cz = 0.0;
-	Vector3f minpoint = { 10000.0f, 10000.0f, 10000.0f };
-	Vector3f maxpoint = { -10000.0f, -10000.0f, -10000.0f };
+	vector3f minpoint = { 10000.0f, 10000.0f, 10000.0f };
+	vector3f maxpoint = { -10000.0f, -10000.0f, -10000.0f };
 
-	Vertex ambient[3], diffuse[3], specular[3];
+	vector3f ambient[3], diffuse[3], specular[3];
 	float shine[3];
 	int material_count, color_index[3], i;
 	char ch;
@@ -59,49 +59,61 @@ void Model::load(char *FileName)
 	//
 	for (i = 0; i<numTriangles; i++) // read triangles
 	{
-		Triangle Tris;
+		Triangle4f tri;
+
 		fscanf(fp, "v0 %f %f %f %f %f %f %d\n",
-			&(Tris.v0.x), &(Tris.v0.y), &(Tris.v0.z),
-			&(Tris.normal[0].x), &(Tris.normal[0].y), &(Tris.normal[0].z),
+			&(tri.v[0].position.x), &(tri.v[0].position.y), &(tri.v[0].position.z),
+			&(tri.v[0].normal.x), &(tri.v[0].normal.y), &(tri.v[0].normal.z),
 			&(color_index[0]));
 		fscanf(fp, "v1 %f %f %f %f %f %f %d\n",
-			&(Tris.v1.x), &(Tris.v1.y), &(Tris.v1.z),
-			&(Tris.normal[1].x), &(Tris.normal[1].y), &(Tris.normal[1].z),
+			&(tri.v[1].position.x), &(tri.v[1].position.y), &(tri.v[1].position.z),
+			&(tri.v[1].normal.x), &(tri.v[1].normal.y), &(tri.v[1].normal.z),
 			&(color_index[1]));
 		fscanf(fp, "v2 %f %f %f %f %f %f %d\n",
-			&(Tris.v2.x), &(Tris.v2.y), &(Tris.v2.z),
-			&(Tris.normal[2].x), &(Tris.normal[2].y), &(Tris.normal[2].z),
+			&(tri.v[2].position.x), &(tri.v[2].position.y), &(tri.v[2].position.z),
+			&(tri.v[2].normal.x), &(tri.v[2].normal.y), &(tri.v[2].normal.z),
 			&(color_index[2]));
-		fscanf(fp, "face normal %f %f %f\n", &(Tris.face_normal.x), &(Tris.face_normal.y),
-			&(Tris.face_normal.z));
+		fscanf(fp, "face normal %f %f %f\n", &(tri.normal.x), &(tri.normal.y), &(tri.normal.z));
 		//
 
-		if (Tris.v0.x < minpoint.x) { minpoint.x = Tris.v0.x; }
-		if (Tris.v0.y < minpoint.y) { minpoint.y = Tris.v0.y; }
-		if (Tris.v0.z < minpoint.z) { minpoint.z = Tris.v0.z; }
-		if (Tris.v0.x > maxpoint.x) { maxpoint.x = Tris.v0.x; }
-		if (Tris.v0.y > maxpoint.y) { maxpoint.y = Tris.v0.y; }
-		if (Tris.v0.z > maxpoint.z) { maxpoint.z = Tris.v0.z; }
+		tri.v[0].position.w = 1;
+		tri.v[1].position.w = 1;
+		tri.v[2].position.w = 1;
 
-		if (Tris.v1.x < minpoint.x) { minpoint.x = Tris.v1.x; }
-		if (Tris.v1.y < minpoint.y) { minpoint.y = Tris.v1.y; }
-		if (Tris.v1.z < minpoint.z) { minpoint.z = Tris.v1.z; }
-		if (Tris.v1.x > maxpoint.x) { maxpoint.x = Tris.v1.x; }
-		if (Tris.v1.y > maxpoint.y) { maxpoint.y = Tris.v1.y; }
-		if (Tris.v1.z > maxpoint.z) { maxpoint.z = Tris.v1.z; }
+		if (tri.v[0].position.x < minpoint.x) { minpoint.x = tri.v[0].position.x; }
+		if (tri.v[0].position.y < minpoint.y) { minpoint.y = tri.v[0].position.y; }
+		if (tri.v[0].position.z < minpoint.z) { minpoint.z = tri.v[0].position.z; }
+		if (tri.v[0].position.x > maxpoint.x) { maxpoint.x = tri.v[0].position.x; }
+		if (tri.v[0].position.y > maxpoint.y) { maxpoint.y = tri.v[0].position.y; }
+		if (tri.v[0].position.z > maxpoint.z) { maxpoint.z = tri.v[0].position.z; }
 
-		if (Tris.v2.x < minpoint.x) { minpoint.x = Tris.v2.x; }
-		if (Tris.v2.y < minpoint.y) { minpoint.y = Tris.v2.y; }
-		if (Tris.v2.z < minpoint.z) { minpoint.z = Tris.v2.z; }
-		if (Tris.v2.x > maxpoint.x) { maxpoint.x = Tris.v2.x; }
-		if (Tris.v2.y > maxpoint.y) { maxpoint.y = Tris.v2.y; }
-		if (Tris.v2.z > maxpoint.z) { maxpoint.z = Tris.v2.z; }
+		if (tri.v[1].position.x < minpoint.x) { minpoint.x = tri.v[1].position.x; }
+		if (tri.v[1].position.y < minpoint.y) { minpoint.y = tri.v[1].position.y; }
+		if (tri.v[1].position.z < minpoint.z) { minpoint.z = tri.v[1].position.z; }
+		if (tri.v[1].position.x > maxpoint.x) { maxpoint.x = tri.v[1].position.x; }
+		if (tri.v[1].position.y > maxpoint.y) { maxpoint.y = tri.v[1].position.y; }
+		if (tri.v[1].position.z > maxpoint.z) { maxpoint.z = tri.v[1].position.z; }
 
-		Tris.color.r = (unsigned char)(int)(255 * (diffuse[color_index[0]].x));
-		Tris.color.g = (unsigned char)(int)(255 * (diffuse[color_index[0]].y));
-		Tris.color.b = (unsigned char)(int)(255 * (diffuse[color_index[0]].z));
+		if (tri.v[2].position.x < minpoint.x) { minpoint.x = tri.v[2].position.x; }
+		if (tri.v[2].position.y < minpoint.y) { minpoint.y = tri.v[2].position.y; }
+		if (tri.v[2].position.z < minpoint.z) { minpoint.z = tri.v[2].position.z; }
+		if (tri.v[2].position.x > maxpoint.x) { maxpoint.x = tri.v[2].position.x; }
+		if (tri.v[2].position.y > maxpoint.y) { maxpoint.y = tri.v[2].position.y; }
+		if (tri.v[2].position.z > maxpoint.z) { maxpoint.z = tri.v[2].position.z; }
 
-		triangles.push_back(Tris);
+		tri.v[0].color[0] = (unsigned char)(int)(255 * (diffuse[color_index[0]].x));
+		tri.v[0].color[1] = (unsigned char)(int)(255 * (diffuse[color_index[0]].y));
+		tri.v[0].color[2] = (unsigned char)(int)(255 * (diffuse[color_index[0]].z));
+
+		tri.v[1].color[0] = (unsigned char)(int)(255 * (diffuse[color_index[1]].x));
+		tri.v[1].color[1] = (unsigned char)(int)(255 * (diffuse[color_index[1]].y));
+		tri.v[1].color[2] = (unsigned char)(int)(255 * (diffuse[color_index[1]].z));
+
+		tri.v[2].color[0] = (unsigned char)(int)(255 * (diffuse[color_index[2]].x));
+		tri.v[2].color[1] = (unsigned char)(int)(255 * (diffuse[color_index[2]].y));
+		tri.v[2].color[2] = (unsigned char)(int)(255 * (diffuse[color_index[2]].z));
+
+		triangles.push_back(tri);
 	}
 	fclose(fp);
 
@@ -110,16 +122,4 @@ void Model::load(char *FileName)
 
 	min = minpoint;
 	max = maxpoint;
-}
-
-void Model::print()
-{
-	for (int i = 0; i < numTriangles; i++)
-	{
-		printf("triangle %d\n", i);
-		printf("v0: %f %f %f\n", triangles[i].v0.x, triangles[i].v0.y, triangles[i].v0.z);
-		printf("v1: %f %f %f\n", triangles[i].v1.x, triangles[i].v1.y, triangles[i].v1.z);
-		printf("v2: %f %f %f\n", triangles[i].v2.x, triangles[i].v2.y, triangles[i].v2.z);
-		printf("color: %d %d %d\n", triangles[i].color.r, triangles[i].color.g, triangles[i].color.b);
-	}
 }

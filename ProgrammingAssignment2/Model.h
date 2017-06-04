@@ -4,6 +4,8 @@
 #include <iostream>
 #include <vector>
 
+#include "vector4f.h"
+
 #define MAX_MATERIAL_COUNT 3;
 
 class Model
@@ -14,45 +16,26 @@ public:
 	~Model();
 
 	void load(char* Filename);
-	void print();
+	//void print();
 
-	typedef struct Normal {
-		float x;
-		float y;
-		float z;
+	struct Vertex4f
+	{
+		vector4f position;
+		vector4f normal;
+		float color[3];
+		float s, t;
 	};
 
-	typedef struct Vertex {
-		float x;
-		float y;
-		float z;
+	struct Triangle4f
+	{
+		Vertex4f v[4];
+		vector4f normal;
 	};
 
-	typedef struct Vector3f {
-		float x;
-		float y;
-		float z;
-	};
-
-	typedef struct Color {
-		int r;
-		int g;
-		int b;
-	};
-
-	typedef struct Triangle {
-		Vertex v0;
-		Vertex v1;
-		Vertex v2;
-		Normal normal[3];
-		Vertex face_normal;
-		Color color;
-	};
-
-	std::vector<Triangle> triangles;
+	std::vector<Triangle4f> triangles;
 	int numTriangles;
-	Vector3f min;
-	Vector3f max;
+	vector3f min;
+	vector3f max;
 
 
 };

@@ -33,8 +33,8 @@ float g_FOVX = 60.0f;
 float g_FOVY = 60.0f;
 
 // Material Color
-float g_MatAmbient[] = { 0.5f, 0.0f, 0.0f, 1.0f };
-float g_MatDiffuse[] = { 0.2f, 0.2f, 0.2f, 1.0f };
+//float g_MatAmbient[] = { 0.2f, 0.2f, 0.2f, 1.0f };
+float g_MatDiffuse[] = { 0.5f, 0.0f, 0.0f, 1.0f };
 
 // Light parameter
 float g_LightMultiplier = 1.0f;
@@ -43,6 +43,7 @@ float g_LightDirection[] = { 1.1547f, -1.1547f, 1.1547f };
 // Booleans
 int g_LookAtObject = 1;
 int g_PerformBFCulling = 0;
+int g_VertexOrientation = 0;
 
 // Options
 int g_DrawingMode = 0;
@@ -116,20 +117,6 @@ void update_viewport_matrix(double lv, double rv, double bv, double tv)
 	m->m[3] = 0; 				m->m[7] = 0; 				m->m[11] = 0;	m->m[15] = 1;
 }
 
-void updateFPS(int value) {
-	fps = frameCounter;
-	frameCounter = 0;
-
-	glutTimerFunc(1000/*1sec*/, updateFPS, 0);
-}
-
-void updateFPS2(int value) {
-	fps2 = frameCounter2;
-	frameCounter2 = 0;
-
-	glutTimerFunc(1000/*1sec*/, updateFPS2, 0);
-}
-
 //Draw model
 void Draw(Model m)
 {
@@ -137,15 +124,15 @@ void Draw(Model m)
 	{
 		for (int i = 0; i < m.numTriangles; i++)
 		{
-			glColor4f(g_MatDiffuse[0], g_MatDiffuse[1], g_MatDiffuse[2], g_MatDiffuse[3]);
+			glColor3f(g_MatDiffuse[0], g_MatDiffuse[1], g_MatDiffuse[2]);
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			glBegin(GL_TRIANGLES);
-			glNormal3f(m.triangles[i].normal[0].x, m.triangles[i].normal[0].y, m.triangles[i].normal[0].z);
-			glVertex3f(m.triangles[i].v0.x, m.triangles[i].v0.y, m.triangles[i].v0.z);
-			glNormal3f(m.triangles[i].normal[1].x, m.triangles[i].normal[1].y, m.triangles[i].normal[1].z);
-			glVertex3f(m.triangles[i].v1.x, m.triangles[i].v1.y, m.triangles[i].v1.z);
-			glNormal3f(m.triangles[i].normal[2].x, m.triangles[i].normal[2].y, m.triangles[i].normal[2].z);
-			glVertex3f(m.triangles[i].v2.x, m.triangles[i].v2.y, m.triangles[i].v2.z);
+			glNormal3f(m.triangles[i].v[0].normal.x, m.triangles[i].v[0].normal.y, m.triangles[i].v[0].normal.z);
+			glVertex3f(m.triangles[i].v[0].position.x, m.triangles[i].v[0].position.y, m.triangles[i].v[0].position.z);
+			glNormal3f(m.triangles[i].v[1].normal.x, m.triangles[i].v[1].normal.y, m.triangles[i].v[1].normal.z);
+			glVertex3f(m.triangles[i].v[1].position.x, m.triangles[i].v[1].position.y, m.triangles[i].v[1].position.z);
+			glNormal3f(m.triangles[i].v[2].normal.x, m.triangles[i].v[2].normal.y, m.triangles[i].v[2].normal.z);
+			glVertex3f(m.triangles[i].v[2].position.x, m.triangles[i].v[2].position.y, m.triangles[i].v[2].position.z);
 			glEnd();
 		}
 	}
@@ -153,15 +140,15 @@ void Draw(Model m)
 	{
 		for (int i = 0; i < m.numTriangles; i++)
 		{
-			glColor4f(g_MatDiffuse[0], g_MatDiffuse[1], g_MatDiffuse[2], g_MatDiffuse[3]);
+			glColor3f(g_MatDiffuse[0], g_MatDiffuse[1], g_MatDiffuse[2]);
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			glBegin(GL_TRIANGLES);
-			glNormal3f(m.triangles[i].normal[0].x, m.triangles[i].normal[0].y, m.triangles[i].normal[0].z);
-			glVertex3f(m.triangles[i].v0.x, m.triangles[i].v0.y, m.triangles[i].v0.z);
-			glNormal3f(m.triangles[i].normal[1].x, m.triangles[i].normal[1].y, m.triangles[i].normal[1].z);
-			glVertex3f(m.triangles[i].v1.x, m.triangles[i].v1.y, m.triangles[i].v1.z);
-			glNormal3f(m.triangles[i].normal[2].x, m.triangles[i].normal[2].y, m.triangles[i].normal[2].z);
-			glVertex3f(m.triangles[i].v2.x, m.triangles[i].v2.y, m.triangles[i].v2.z);
+			glNormal3f(m.triangles[i].v[0].normal.x, m.triangles[i].v[0].normal.y, m.triangles[i].v[0].normal.z);
+			glVertex3f(m.triangles[i].v[0].position.x, m.triangles[i].v[0].position.y, m.triangles[i].v[0].position.z);
+			glNormal3f(m.triangles[i].v[1].normal.x, m.triangles[i].v[1].normal.y, m.triangles[i].v[1].normal.z);
+			glVertex3f(m.triangles[i].v[1].position.x, m.triangles[i].v[1].position.y, m.triangles[i].v[1].position.z);
+			glNormal3f(m.triangles[i].v[2].normal.x, m.triangles[i].v[2].normal.y, m.triangles[i].v[2].normal.z);
+			glVertex3f(m.triangles[i].v[2].position.x, m.triangles[i].v[2].position.y, m.triangles[i].v[2].position.z);
 			glEnd();
 		}
 	}
@@ -169,15 +156,15 @@ void Draw(Model m)
 	{
 		for (int i = 0; i < m.numTriangles; i++)
 		{
-			glColor4f(g_MatDiffuse[0], g_MatDiffuse[1], g_MatDiffuse[2], g_MatDiffuse[3]);
+			glColor3f(g_MatDiffuse[0], g_MatDiffuse[1], g_MatDiffuse[2]);
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			glBegin(GL_POINTS);
-			glNormal3f(m.triangles[i].normal[0].x, m.triangles[i].normal[0].y, m.triangles[i].normal[0].z);
-			glVertex3f(m.triangles[i].v0.x, m.triangles[i].v0.y, m.triangles[i].v0.z);
-			glNormal3f(m.triangles[i].normal[1].x, m.triangles[i].normal[1].y, m.triangles[i].normal[1].z);
-			glVertex3f(m.triangles[i].v1.x, m.triangles[i].v1.y, m.triangles[i].v1.z);
-			glNormal3f(m.triangles[i].normal[2].x, m.triangles[i].normal[2].y, m.triangles[i].normal[2].z);
-			glVertex3f(m.triangles[i].v2.x, m.triangles[i].v2.y, m.triangles[i].v2.z);
+			glNormal3f(m.triangles[i].v[0].normal.x, m.triangles[i].v[0].normal.y, m.triangles[i].v[0].normal.z);
+			glVertex3f(m.triangles[i].v[0].position.x, m.triangles[i].v[0].position.y, m.triangles[i].v[0].position.z);
+			glNormal3f(m.triangles[i].v[1].normal.x, m.triangles[i].v[1].normal.y, m.triangles[i].v[1].normal.z);
+			glVertex3f(m.triangles[i].v[1].position.x, m.triangles[i].v[1].position.y, m.triangles[i].v[1].position.z);
+			glNormal3f(m.triangles[i].v[2].normal.x, m.triangles[i].v[2].normal.y, m.triangles[i].v[2].normal.z);
+			glVertex3f(m.triangles[i].v[2].position.x, m.triangles[i].v[2].position.y, m.triangles[i].v[2].position.z);
 			glEnd();
 		}
 	}
@@ -198,33 +185,36 @@ void set_camera_position_auto()
 	glLoadMatrixf(modelview.m); // load OpenGL’s modelview matrix
 }
 
-void DrawClose2GLTriangle(vector4f v0, vector4f v1, vector4f v2)
+void DrawClose2GLTriangle(Model::Triangle4f tri)
 {
 	if (g_DrawingMode == 0)
 	{
 		glColor3f(g_MatDiffuse[0], g_MatDiffuse[1], g_MatDiffuse[2]);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glBegin(GL_TRIANGLES);
-		glVertex2f(v0.x, v0.y);
-		glVertex2f(v1.x, v1.y);
-		glVertex2f(v2.x, v2.y);
+		glVertex2f(tri.v[0].position.x, tri.v[0].position.y);
+		glVertex2f(tri.v[1].position.x, tri.v[1].position.y);
+		glVertex2f(tri.v[2].position.x, tri.v[2].position.y);
 		glEnd();
 	}
 	else if (g_DrawingMode == 1)
 	{
 		glColor3f(g_MatDiffuse[0], g_MatDiffuse[1], g_MatDiffuse[2]);
-		glBegin(GL_LINES);
-		glVertex2f(v0.x, v0.y);
-		glVertex2f(v1.x, v1.y);
-		glVertex2f(v2.x, v2.y);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		glBegin(GL_TRIANGLES);
+		glVertex2f(tri.v[0].position.x, tri.v[0].position.y);
+		glVertex2f(tri.v[1].position.x, tri.v[1].position.y);
+		glVertex2f(tri.v[2].position.x, tri.v[2].position.y);
 		glEnd();
 	}
 	else
 	{
 		glColor3f(g_MatDiffuse[0], g_MatDiffuse[1], g_MatDiffuse[2]);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		glBegin(GL_POINTS);
-		glVertex2f(v0.x, v0.y);
-		glVertex2f(v1.x, v1.y);
-		glVertex2f(v2.x, v2.y);
+		glVertex2f(tri.v[0].position.x, tri.v[0].position.y);
+		glVertex2f(tri.v[1].position.x, tri.v[1].position.y);
+		glVertex2f(tri.v[2].position.x, tri.v[2].position.y);
 		glEnd();
 	}
 }
@@ -240,63 +230,91 @@ void DisplayClose2GL(void)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_NORMALIZE);
 
+	std::vector<Model::Triangle4f> triangles = m.triangles;
 	//for each vertex, multiply it by model + projected matrixes to obtain projected vertexes.
 	for (int i = 0; i < m.numTriangles; i++)
 	{
 		//by modelview
-		vector4f v0 = vector4f(m.triangles[i].v0.x, m.triangles[i].v0.y, m.triangles[i].v0.z, 1);
-		modelview.transformVector(&v0);
-
-		vector4f v1 = vector4f(m.triangles[i].v1.x, m.triangles[i].v1.y, m.triangles[i].v1.z, 1);
-		modelview.transformVector(&v1);
-
-		vector4f v2 = vector4f(m.triangles[i].v2.x, m.triangles[i].v2.y, m.triangles[i].v2.z, 1);
-		modelview.transformVector(&v2);
+		modelview.transformVector(&triangles[i].v[0].position);
+		modelview.transformVector(&triangles[i].v[1].position);
+		modelview.transformVector(&triangles[i].v[2].position);
 
 		//by projection matrix
-		projection.transformVector(&v0);
-		projection.transformVector(&v1);
-		projection.transformVector(&v2);
-	
+		projection.transformVector(&triangles[i].v[0].position);
+		projection.transformVector(&triangles[i].v[1].position);
+		projection.transformVector(&triangles[i].v[2].position);
+	}
+
+	std::vector<Model::Triangle4f> temp = triangles;
+
+	for (int i = 0; i < triangles.size(); i++)
+	{
 
 		/*	Clipping against the normalized perspective view volume is trivial. Points inside
-			the view volume are defined by abs(x), abs(y), abs(z) ≤ abs(w).Why ?
-			(to simplify your task, you can clip the whole triangle if at least one of its vertices
-			fall outside the view volume). 
+		the view volume are defined by abs(x), abs(y), abs(z) ≤ abs(w).Why ?
+		(to simplify your task, you can clip the whole triangle if at least one of its vertices
+		fall outside the view volume).
 		*/
 
 		// clip
-		
-		double w1 = abs(v0.w);
-		double w2 = abs(v1.w);
-		double w3 = abs(v2.w);
+		double w1 = abs(triangles[i].v[0].position.w);
+		double w2 = abs(triangles[i].v[1].position.w);
+		double w3 = abs(triangles[i].v[2].position.w);
 
-		if (abs(v0.x) <= w1 &&
-			abs(v0.y) <= w1 &&
-			abs(v0.z) <= w1 &&
 
-			abs(v1.x) <= w2 &&
-			abs(v1.y) <= w2 &&
-			abs(v1.z) <= w2 &&
+		if (abs(triangles[i].v[0].position.x) <= w1 &&
+			abs(triangles[i].v[0].position.y) <= w1 &&
+			abs(triangles[i].v[0].position.z) <= w1 &&
 
-			abs(v2.x) <= w3 &&
-			abs(v2.y) <= w3 &&
-			abs(v2.z) <= w3)
-		{
-			//perform persp division then viewport mapping
+			abs(triangles[i].v[1].position.x) <= w2 &&
+			abs(triangles[i].v[1].position.y) <= w2 &&
+			abs(triangles[i].v[1].position.z) <= w2 &&
 
-			v0 = v0 / v0.w;
-			v1 = v1 / v1.w;
-			v2 = v2 / v2.w;
+			abs(triangles[i].v[2].position.x) <= w3 &&
+			abs(triangles[i].v[2].position.y) <= w3 &&
+			abs(triangles[i].v[2].position.z) <= w3) {
 
-			viewport.transformVector(&v0);
-			viewport.transformVector(&v1);
-			viewport.transformVector(&v2);
-
-			DrawClose2GLTriangle(v0, v1, v2);
+				temp.push_back(triangles[i]);
 		}
-		
 	}
+
+	// Do culling
+	if (g_PerformBFCulling) {
+		triangles.clear();
+		for (unsigned int i = 0; i<temp.size(); i++) {
+
+			vector3f face_normal = vector3f(temp[i].normal.x, temp[i].normal.y, temp[i].normal.z);
+
+			switch (g_VertexOrientation) {
+			case 0:	//cw
+				if (dotProduct(-(g_cam.n), face_normal) > 0)
+					triangles.push_back(temp[i]);
+				break;
+			case 1: //ccw
+				if (dotProduct(-(g_cam.n), face_normal) < 0)
+					triangles.push_back(temp[i]);
+				break;
+			}
+		}
+	}
+	else
+		triangles = temp;
+
+	//perform persp division then viewport mapping
+
+	for (int i = 0; i < triangles.size(); i++)
+	{
+		triangles[i].v[0].position = triangles[i].v[0].position / triangles[i].v[0].position.w;
+		triangles[i].v[1].position = triangles[i].v[1].position / triangles[i].v[1].position.w;
+		triangles[i].v[2].position = triangles[i].v[2].position / triangles[i].v[2].position.w;
+
+		viewport.transformVector(&triangles[i].v[0].position);
+		viewport.transformVector(&triangles[i].v[1].position);
+		viewport.transformVector(&triangles[i].v[2].position);
+
+		DrawClose2GLTriangle(triangles[i]);
+	}
+	
 
 	// Present frame buffer
 	glutSwapBuffers();
@@ -333,16 +351,21 @@ void Display(void)
 	{
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
-		gluLookAt(g_CamPosition[0] + g_CamTranslation[0], g_CamPosition[1] + g_CamTranslation[1],
-			g_CamPosition[2] + g_CamTranslation[2], obj_center[0], obj_center[1], obj_center[2], 0, 1, 0);
+		gluLookAt(	g_cam.eye.x, g_cam.eye.y, g_cam.eye.z,
+					obj_center[0], obj_center[1], obj_center[2], 
+					g_cam.v.x, g_cam.v.y, g_cam.v.z);
+
+		//gluLookAt(	g_cam.eye.x, g_cam.eye.y, g_cam.eye.z,
+		//			g_cam.eye.x + g_cam.n.x, g_cam.eye.y + g_cam.n.y, g_cam.eye.z + g_cam.n.z,
+		//			g_cam.v.x, g_cam.v.y, g_cam.v.z);
 	}
 	else
 	{
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
-		gluLookAt(g_CamPosition[0] + g_CamTranslation[0], g_CamPosition[1] + g_CamTranslation[1], g_CamPosition[2] + g_CamTranslation[2],
-			obj_center[0] + g_CamTranslation[0], obj_center[1] + g_CamTranslation[1], obj_center[2] + g_CamTranslation[2],
-			0, 1, 0);
+		gluLookAt(	g_cam.eye.x, g_cam.eye.y, g_cam.eye.z,
+					obj_center[0] + g_CamTranslation[0], obj_center[1] + g_CamTranslation[1], obj_center[2] + g_CamTranslation[2],
+					g_cam.v.x, g_cam.v.y, g_cam.v.z);
 	}
 
 	// culling setup (NOT WORKING?)
@@ -364,31 +387,27 @@ void Display(void)
 	glEnable(GL_LIGHT0);
 	v[0] = v[1] = v[2] = g_LightMultiplier*0.4f; v[3] = 1.0f;
 	glLightfv(GL_LIGHT0, GL_AMBIENT, v);
-	v[0] = v[1] = v[2] = g_LightMultiplier*0.8f; v[3] = 1.0f;
+	v[0] = v[1] = v[2] = g_LightMultiplier*0.4f; v[3] = 1.0f;
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, v);
 	v[0] = -g_LightDirection[0]; v[1] = -g_LightDirection[1]; v[2] = -g_LightDirection[2]; v[3] = 0.0f;
 	glLightfv(GL_LIGHT0, GL_POSITION, v);
 
 	// Set material
-	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, g_MatAmbient);
+	
 	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, g_MatDiffuse);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, g_MatDiffuse);
 
 	// Rotate and draw shape
-	glPushMatrix();
-	//glScalef(g_Zoom, g_Zoom, g_Zoom);
-	//if (g_CurrentShading == SHADING_SOLID)
-	//	glutSolidTeapot(1.0);
-	//else
-	//	glutWireTeapot(1.0);
+	//glPushMatrix();
 	Draw(m);
-	glPopMatrix();
+	//glPopMatrix();
 
 	// Present frame buffer
 	glutSwapBuffers();
 
 	// Recall Display at next frame
-	glutSetWindow(mainWindow);
-	glutPostRedisplay();
+	//glutSetWindow(mainWindow);
+	//glutPostRedisplay();
 }
 
 // Callback function called by GLUT when window size changes
@@ -520,24 +539,27 @@ void ReshapeBothWindows()
 
 void createGuiWindow()
 {
-	GLUI *glui = GLUI_Master.create_glui("", 0, 100 + width + 10, 500 - 30);
+	GLUI *glui = GLUI_Master.create_glui("", 0, 100 + width, 0);
 
-	GLUI_Panel *mp = glui->add_panel("Model");
+	GLUI_Panel *mp = glui->add_panel("model");
 	GLUI_Panel *mpm = glui->add_panel_to_panel(mp, "");
-	glui->add_edittext_to_panel(mpm, "File name:", GLUI_EDITTEXT_TEXT, filename);
-	glui->add_button_to_panel(mpm, "Load", 0, (GLUI_Update_CB)LoadModel);
+	glui->add_edittext_to_panel(mpm, "file name:", GLUI_EDITTEXT_TEXT, filename);
+	glui->add_button_to_panel(mpm, "load", 0, (GLUI_Update_CB)LoadModel);
 
 	//GLUI_Listbox *orientations = glui->add_listbox_to_panel(mp, "V. Orientation: ", &orientationOpt, 0, updateSettings);
 	//orientations->add_item(0, "CW");
 	//orientations->add_item(1, "CCW");
 
-	GLUI_Listbox *models = glui->add_listbox_to_panel(mp, "Drawing Mode: ", &g_DrawingMode, 0, updateSettings);
-	models->add_item(0, "Solid");
-	models->add_item(1, "Wire");
-	models->add_item(2, "Points");
-	glui->add_checkbox_to_panel(mp, "Backface Culling?", &g_PerformBFCulling, 0, updateSettings);
+	GLUI_Listbox *models = glui->add_listbox_to_panel(mp, "drawing Mode: ", &g_DrawingMode, 0, updateSettings);
+	models->add_item(0, "solid");
+	models->add_item(1, "wire");
+	models->add_item(2, "points");
+	glui->add_checkbox_to_panel(mp, "backface culling?", &g_PerformBFCulling, 0, updateSettings);
+	GLUI_Listbox *orientations = glui->add_listbox_to_panel(mp, "vertex orientation: ", &g_VertexOrientation, 0, updateSettings);
+	orientations->add_item(0, "CW");
+	orientations->add_item(1, "CCW");
 
-	GLUI_Panel *mpc = glui->add_panel_to_panel(mp, "Coloring");
+	GLUI_Panel *mpc = glui->add_panel_to_panel(mp, "coloring");
 	GLUI_Spinner *rSpin = glui->add_spinner_to_panel(mpc, "R:", GLUI_SPINNER_FLOAT, &g_MatDiffuse[0]);
 	rSpin->set_float_limits(0., 1., GLUI_LIMIT_CLAMP);
 	GLUI_Spinner *gSpin = glui->add_spinner_to_panel(mpc, "G:", GLUI_SPINNER_FLOAT, &g_MatDiffuse[1]);
@@ -545,27 +567,27 @@ void createGuiWindow()
 	GLUI_Spinner *bSpin = glui->add_spinner_to_panel(mpc, "B:", GLUI_SPINNER_FLOAT, &g_MatDiffuse[2]);
 	bSpin->set_float_limits(0., 1., GLUI_LIMIT_CLAMP);
 
-	GLUI_Panel *cp = glui->add_panel("Camera");
+	GLUI_Panel *cp = glui->add_panel("camera");
 
-	GLUI_Panel *cptr = glui->add_panel_to_panel(cp, "Movement");
-	glui->add_checkbox_to_panel(mp, "Look at object?", &g_LookAtObject, 0, updateSettings);
+	GLUI_Panel *cptr = glui->add_panel_to_panel(cp, "movement");
+	glui->add_checkbox_to_panel(cptr, "look at object?", &g_LookAtObject, 0, updateSettings);
 	glui->add_spinner_to_panel(cptr, "translation u:", GLUI_SPINNER_FLOAT, &g_CamTranslation[0]);
 	glui->add_spinner_to_panel(cptr, "translation v:", GLUI_SPINNER_FLOAT, &g_CamTranslation[1]);
 	glui->add_spinner_to_panel(cptr, "translation n:", GLUI_SPINNER_FLOAT, &g_CamTranslation[2]);
-	glui->add_button_to_panel(cptr, "Translate", 0, (GLUI_Update_CB)TranslateCam);
+	glui->add_button_to_panel(cptr, "translate", 0, (GLUI_Update_CB)TranslateCam);
 	glui->add_spinner_to_panel(cptr, "rotation u:", GLUI_SPINNER_FLOAT, &g_CamRotation[0]);
 	glui->add_spinner_to_panel(cptr, "rotation v:", GLUI_SPINNER_FLOAT, &g_CamRotation[1]);
 	glui->add_spinner_to_panel(cptr, "rotation n:", GLUI_SPINNER_FLOAT, &g_CamRotation[2]);
-	glui->add_button_to_panel(cptr, "Rotate", 0, (GLUI_Update_CB)RotateCam);
+	glui->add_button_to_panel(cptr, "rotate", 0, (GLUI_Update_CB)RotateCam);
 	
 	GLUI_Panel *cpo = glui->add_panel_to_panel(cp, "Other");
 	glui->add_spinner_to_panel(cpo, "fovx:", GLUI_SPINNER_FLOAT, &g_FOVX, 0, (GLUI_Update_CB)ReshapeBothWindows);
 	glui->add_spinner_to_panel(cpo, "fovy:", GLUI_SPINNER_FLOAT, &g_FOVY, 0, (GLUI_Update_CB)ReshapeBothWindows);
-	glui->add_spinner_to_panel(cpo, "Near Clip:", GLUI_SPINNER_FLOAT, &g_ZNear, 0, (GLUI_Update_CB)ReshapeBothWindows);
-	glui->add_spinner_to_panel(cpo, "Far Clip:", GLUI_SPINNER_FLOAT, &g_ZFar, 0, (GLUI_Update_CB)ReshapeBothWindows);
-	glui->add_button_to_panel(cpo, "Reset position", 0, (GLUI_Update_CB)ResetCam);
+	glui->add_spinner_to_panel(cpo, "near clip:", GLUI_SPINNER_FLOAT, &g_ZNear, 0, (GLUI_Update_CB)ReshapeBothWindows);
+	glui->add_spinner_to_panel(cpo, "far clip:", GLUI_SPINNER_FLOAT, &g_ZFar, 0, (GLUI_Update_CB)ReshapeBothWindows);
+	glui->add_button_to_panel(cpo, "reset position", 0, (GLUI_Update_CB)ResetCam);
 
-	glui->add_button("EXIT", 0, exit);
+	glui->add_button("quit", 0, exit);
 	glui->set_main_gfx_window(mainWindow);
 }
 
