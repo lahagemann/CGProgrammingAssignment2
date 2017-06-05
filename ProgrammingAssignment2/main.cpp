@@ -13,6 +13,10 @@
 
 #define PI 3.141592654
 
+struct ARGBf {
+	float r, g, b, a;
+};
+
 // TWEAKABLE PARAMETERS
 
 // Camera Position
@@ -47,13 +51,18 @@ int g_VertexOrientation = 0;
 
 // Options
 int g_DrawingMode = 0;
+int g_Shading = 0;
 char filename[256] = "cube.in";
 
 // other variables
 Model m;
 Camera g_cam;
 int mainWindow, close2GLWindow;
-long int frameCounter, frameCounter2, fps, fps2;
+
+// BUFFERS
+// buffers must be a 1 dimension array/pointer, as screen can change size.
+double *z_buffer;
+ARGBf *color_buffer;
 
 int width = 600;
 int height = 600;
@@ -184,6 +193,296 @@ void set_camera_position_auto()
 	glMatrixMode(GL_MODELVIEW);
 	glLoadMatrixf(modelview.m); // load OpenGL’s modelview matrix
 }
+
+// RASTERIZATION FUNCTIONS
+ARGBf interpolate_colors(float c1[3], float c2[3], float position)
+{
+	return {position*c1[0] + (1-position)*c2[0],
+			position*c1[1] + (1 - position)*c2[1],
+			position*c1[2] + (1 - position)*c2[2],
+			1};
+}
+
+ARGBf interpolate_colors(ARGBf c1, ARGBf c2, float position)
+{
+	return {position*c1.r + (1 - position)*c2.r,
+			position*c1.g + (1 - position)*c2.g,
+			position*c1.b + (1 - position)*c2.b,
+			1};
+}
+
+ARGBf average_color(float c1[3], float c2[3], float c3[3])
+{
+	return {(c1[0] + c2[0] + c3[0])/3,
+			(c1[1] + c2[1] + c3[1])/3,
+			(c1[2] + c2[2] + c3[2])/3,
+			1};
+}
+
+ARGBf average_color(ARGBf c1, ARGBf c2, ARGBf c3)
+{
+	return	{(c1.r + c2.r + c3.r)/3,
+			 (c1.g + c2.g + c3.g)/3,
+			 (c1.b + c2.b + c3.b)/3, 
+			 1};
+}
+
+float interpolate_depths(float z1, float z2, float position)
+{
+	return (1-position)*z1 + position*z2;
+}
+
+bool test_z_buffer(int x, int y, float z)
+{
+	if (z_buffer[x + y*width] > z) 
+	{
+		z_buffer[x + y*width] = z;
+		return true;
+	}
+	else
+		return false;
+}
+
+void set_to_color_buffer(int x, int y, ARGBf color)
+{
+	color_buffer[x + y*width] = color;
+}
+
+
+void RasterizeTriangle(Model::Triangle4f tri) 
+{
+	switch (g_DrawingMode)
+	{
+		case 0: // solid
+		{
+			double dx0, dy0, dx1, dy1, dx2, dy2;
+			double incx0, incx1, incx2, newincxA, newincxB;
+			double y, x1, x2, raster_limit_left, raster_limit_right;
+			double dy, starting_x;
+			double depthBA, depthBC;
+			ARGBf colorBA, colorBC;
+			int rasterX, rasterY;
+
+			Model::Vertex4f A, B, C, bottom, newA, newB;
+
+			/*
+				Order vertexes by coordinate y
+				start by upper vertex
+					    B
+					   / \
+					  A   \
+						   C
+			*/
+
+			if ((tri.v[0].position.y > tri.v[1].position.y) && (tri.v[0].position.y > tri.v[2].position.y))
+			{
+				B = tri.v[0];
+				if ((tri.v[1].position.x < tri.v[2].position.x))
+				{
+					A = tri.v[1];
+					C = tri.v[2];
+				}
+				else
+				{
+					C = tri.v[1];
+					A = tri.v[2];
+				}
+			}
+			else if ((tri.v[1].position.y > tri.v[0].position.y) && (tri.v[1].position.y > tri.v[2].position.y))
+			{
+				B = tri.v[1];
+				if ((tri.v[0].position.x < tri.v[2].position.x))
+				{
+					A = tri.v[0];
+					C = tri.v[2];
+				}
+				else
+				{
+					C = tri.v[0];
+					A = tri.v[2];
+				}
+			}
+			else
+			{
+				B = tri.v[2];
+				if ((tri.v[0].position.x < tri.v[1].position.x))
+				{
+					A = tri.v[0];
+					C = tri.v[1];
+				}
+				else
+				{
+					C = tri.v[0];
+					A = tri.v[1];
+				}
+			}
+				
+			dx0 = B.position.x - A.position.x;
+			dx1 = C.position.x - B.position.x;
+			dx2 = A.position.x - C.position.x;
+
+			dy0 = B.position.y - A.position.y;
+			dy1 = B.position.y - C.position.y;
+			dy2 = A.position.y - C.position.y;
+
+			/* Phase 1: rasterize from top to next vertex sorted by y position
+				   ( B ) 
+				  ( / \ )
+				 ( A   \ )
+				        \
+				         C
+			*/
+			if (dy2 > 0) // A > C, stops at B-A.
+				dy = dy0;
+			else      // A < C, stops at B-C.
+				dy = dy1;
+
+			incx0 = dx0 / dy0;
+			incx1 = dx1 / dy1;
+			incx2 = dx2 / dy2;
+
+			y = B.position.y;
+			
+			// now rasterize each line.
+			for (int n = 0; n <= dy; n++)
+			{
+				/*
+						 bx
+					   x1  x2
+				*/
+				x1 = B.position.x - n*incx0;
+				x2 = B.position.x + n*incx1;
+				y--;
+
+				if (g_Shading == 1) //GOURAUD 
+				{
+					// interpolate colors in active edges B-A and B-C in current position n/dy
+					colorBA = interpolate_colors(B.color, A.color, (float)n/dy);
+					colorBC = interpolate_colors(B.color, C.color, (float)n/dy);
+				}
+
+				//interpolate zs of active edges B-A and B-C
+				depthBA = interpolate_depths(B.position.z, A.position.z, (float)n/dy);
+				depthBC = interpolate_depths(B.position.z, A.position.z, (float)n/dy);
+
+				if (x1 < x2)
+				{
+					raster_limit_left = x1;
+					raster_limit_right = x2;
+				}
+				else
+				{
+					raster_limit_left = x2;
+					raster_limit_right = x1;
+				}
+
+				// now fill the line interpolating the colors
+				for (int x = raster_limit_left; x <= raster_limit_right; x++)
+				{
+					rasterX = (int) round(x);
+					rasterY = (int) round(y);
+					float current_depth = interpolate_depths(depthBA, depthBC, (float)(x-raster_limit_left)/(raster_limit_right-raster_limit_left));
+				
+					//test z buffer
+					if (test_z_buffer(rasterX, rasterY, current_depth))
+					{
+						if (g_Shading == 1) // gouraud
+							set_to_color_buffer(rasterX, rasterY, interpolate_colors(colorBA, colorBC, (float)(x - raster_limit_left) / (raster_limit_right - raster_limit_left)));
+						else //flat
+							set_to_color_buffer(rasterX, rasterY, average_color(B.color, A.color, C.color));
+					}
+				}
+			}
+
+			//Phase 2: rasterize the bottom of the triangle
+			// Rasterize Phase 2 - bottom part
+			/*
+					     B  
+					    / \ 
+					  ( A  new B )
+					 (	    \	  )
+					(		 C	   )
+				*/
+
+			if (dy2 > 0) { // A > C, C bellow A
+				dy = dy1 - dy0; //B-C - B-A (what's left)
+				newincxA = incx2;
+				newincxB = -incx1;
+				bottom = C;
+				newA = A;
+				newB = B;
+			}
+			else { //A < C, A bellow C
+				dy = dy0 - dy1; // B-A - B-C (what's left)
+				newincxA = incx0;
+				newincxB = incx2;
+				bottom = A;
+				newA = B;
+				newB = C;
+			}
+
+			starting_x = bottom.position.x;
+			y = bottom.position.y;
+			for (int n = 0; n <= dy; n++) 
+			{
+				x1 = starting_x + n*newincxA;
+				x2 = starting_x + n*newincxB;
+				y++;
+
+				if (g_Shading == 1) //GOURAUD 
+				{
+					// interpolate colors in active edges C-A and C-newB in current position n/dy
+					colorBA = interpolate_colors(bottom.color, newA.color, (float)n/dy);
+					colorBC = interpolate_colors(bottom.color, newB.color, (float)n/dy);
+				}
+
+				//interpolate zs of active edges C-A and C-newB
+				depthBA = interpolate_depths(bottom.position.z, newA.position.z, (float)n/dy);
+				depthBC = interpolate_depths(bottom.position.z, newB.position.z, (float)n/dy);
+
+				if (x1 < x2)
+				{
+					raster_limit_left = x1;
+					raster_limit_right = x2;
+				}
+				else
+				{
+					raster_limit_left = x2;
+					raster_limit_right = x1;
+				}
+
+				// now fill the line interpolating the colors
+				for (int x = raster_limit_left; x <= raster_limit_right; x++)
+				{
+					rasterX = (int)round(x);
+					rasterY = (int)round(y);
+					float current_depth = interpolate_depths(depthBA, depthBC, (float)(x - raster_limit_left) / (raster_limit_right - raster_limit_left));
+
+					//test z buffer
+					if (test_z_buffer(rasterX, rasterY, current_depth))
+					{
+						if (g_Shading == 1) // gouraud
+							set_to_color_buffer(rasterX, rasterY, interpolate_colors(colorBA, colorBC, (float)(x - raster_limit_left) / (raster_limit_right - raster_limit_left)));
+						else //flat
+							set_to_color_buffer(rasterX, rasterY, average_color(B.color, A.color, C.color));
+					}
+				}
+			}
+		}
+		break;
+		case 1: // wire
+		{
+
+		}
+		break;
+		case 2: //points
+		{
+
+		}
+		break;
+	}
+}
+
 
 void DrawClose2GLTriangle(Model::Triangle4f tri)
 {
@@ -323,7 +622,6 @@ void DisplayClose2GL(void)
 	// Recall Display at next frame
 	//glutPostRedisplay();
 }
-
 
 // Callback function called by GLUT to render screen
 void Display(void)
@@ -546,18 +844,20 @@ void createGuiWindow()
 	glui->add_edittext_to_panel(mpm, "file name:", GLUI_EDITTEXT_TEXT, filename);
 	glui->add_button_to_panel(mpm, "load", 0, (GLUI_Update_CB)LoadModel);
 
-	//GLUI_Listbox *orientations = glui->add_listbox_to_panel(mp, "V. Orientation: ", &orientationOpt, 0, updateSettings);
-	//orientations->add_item(0, "CW");
-	//orientations->add_item(1, "CCW");
-
 	GLUI_Listbox *models = glui->add_listbox_to_panel(mp, "drawing Mode: ", &g_DrawingMode, 0, updateSettings);
 	models->add_item(0, "solid");
 	models->add_item(1, "wire");
 	models->add_item(2, "points");
+	
 	glui->add_checkbox_to_panel(mp, "backface culling?", &g_PerformBFCulling, 0, updateSettings);
+	
 	GLUI_Listbox *orientations = glui->add_listbox_to_panel(mp, "vertex orientation: ", &g_VertexOrientation, 0, updateSettings);
 	orientations->add_item(0, "CW");
 	orientations->add_item(1, "CCW");
+
+	GLUI_Listbox *shading = glui->add_listbox_to_panel(mp, "shading: ", &g_Shading, 0, updateSettings);
+	orientations->add_item(0, "flat");
+	orientations->add_item(1, "gouraud");
 
 	GLUI_Panel *mpc = glui->add_panel_to_panel(mp, "coloring");
 	GLUI_Spinner *rSpin = glui->add_spinner_to_panel(mpc, "R:", GLUI_SPINNER_FLOAT, &g_MatDiffuse[0]);
@@ -568,13 +868,14 @@ void createGuiWindow()
 	bSpin->set_float_limits(0., 1., GLUI_LIMIT_CLAMP);
 
 	GLUI_Panel *cp = glui->add_panel("camera");
-
 	GLUI_Panel *cptr = glui->add_panel_to_panel(cp, "movement");
 	glui->add_checkbox_to_panel(cptr, "look at object?", &g_LookAtObject, 0, updateSettings);
+
 	glui->add_spinner_to_panel(cptr, "translation u:", GLUI_SPINNER_FLOAT, &g_CamTranslation[0]);
 	glui->add_spinner_to_panel(cptr, "translation v:", GLUI_SPINNER_FLOAT, &g_CamTranslation[1]);
 	glui->add_spinner_to_panel(cptr, "translation n:", GLUI_SPINNER_FLOAT, &g_CamTranslation[2]);
 	glui->add_button_to_panel(cptr, "translate", 0, (GLUI_Update_CB)TranslateCam);
+
 	glui->add_spinner_to_panel(cptr, "rotation u:", GLUI_SPINNER_FLOAT, &g_CamRotation[0]);
 	glui->add_spinner_to_panel(cptr, "rotation v:", GLUI_SPINNER_FLOAT, &g_CamRotation[1]);
 	glui->add_spinner_to_panel(cptr, "rotation n:", GLUI_SPINNER_FLOAT, &g_CamRotation[2]);
