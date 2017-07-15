@@ -26,7 +26,7 @@ void Camera::setModelViewMatrix(void)
 	//glLoadMatrixf(m); // load OpenGL’s modelview matrix
 }
 
-void Camera::set(Point Eye, Point look, vector3f up)
+void Camera::set(vector3f Eye, Point look, vector3f up)
 { // create a modelview matrix and send it to OpenGL
 	eye = Eye; // store the given eye position
 	n = { eye.x - look.x, eye.y - look.y, eye.z - look.z }; // make n
@@ -43,7 +43,7 @@ void Camera::set(Point Eye, Point look, vector3f up)
 
 void Camera::slide(float delU, float delV, float delN)
 {
-	Point e = eye;
+	vector3f e = eye;
 
 	e.x += delU * u.x;
 	e.y += delV * v.y;

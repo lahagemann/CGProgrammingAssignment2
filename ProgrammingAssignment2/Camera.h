@@ -18,7 +18,7 @@ public:
 		float z;
 	};
 
-	Point eye;
+	vector3f eye;
 	vector3f u, v, n;
 
 	float m[16];
@@ -26,7 +26,7 @@ public:
 	float viewAngle, aspect, nearDist, farDist; // view volume shape
 	void setModelViewMatrix(); // tell OpenGL where the camera is
 
-	void set(Point eye, Point look, vector3f up); // like gluLookAt()
+	void set(vector3f eye, Point look, vector3f up); // like gluLookAt()
 	void rotateU(float angle); // yaw it
 	void rotateV(float angle); // pitch it
 	void rotateN(float angle); // roll it

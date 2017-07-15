@@ -47,6 +47,11 @@ void Model::load(char *FileName)
 		fscanf(fp, "specular color %f %f %f\n", &(specular[i].x), &(specular[i].y), &(specular[i].z));
 		fscanf(fp, "material shine %f\n", &(shine[i]));
 	}
+	material.mat_ambient[0] = ambient[0].x; material.mat_ambient[1] = ambient[0].y; material.mat_ambient[2] = ambient[0].z;
+	material.mat_diffuse[0] = diffuse[0].x; material.mat_diffuse[1] = diffuse[0].y; material.mat_diffuse[2] = diffuse[0].z;
+	material.mat_specular[0] = specular[0].x; material.mat_specular[1] = specular[0].y; material.mat_specular[2] = specular[0].z;
+	material.shine = shine[0];
+
 	//
 	fscanf(fp, "%c", &ch);
 	while (ch != '\n') // skip documentation line

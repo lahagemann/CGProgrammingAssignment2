@@ -32,10 +32,20 @@ public:
 		vector4f normal;
 	};
 
+	struct Material
+	{
+		float mat_ambient[3];
+		float mat_diffuse[3];
+		float mat_specular[3];
+		float shine;
+	};
+
 	std::vector<Triangle4f> triangles;
 	int numTriangles;
 	vector3f min;
 	vector3f max;
+	Material material;
+	
 
 
 };
